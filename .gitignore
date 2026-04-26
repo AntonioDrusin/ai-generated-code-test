@@ -1,0 +1,182 @@
+# ────────────────────────────────────────────────
+# Python
+# ────────────────────────────────────────────────
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Environments
+.env
+.env.local
+.env.*.local
+
+# ────────────────────────────────────────────────
+# Node.js / JavaScript
+# ────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.pnpm-debug.log*
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+.playwright/
+
+# ────────────────────────────────────────────────
+# C# / .NET
+# ────────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.vsidx
+.vs/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+
+# ────────────────────────────────────────────────
+# IDEs
+# ────────────────────────────────────────────────
+# JetBrains
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Visual Studio
+.vs/
+*.user
+*.userprefs
+
+# ────────────────────────────────────────────────
+# Docker
+# ────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ────────────────────────────────────────────────
+# Database
+# ────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# Database migrations (keep the migration files, ignore local state)
+alembic.ini.local
+
+# ────────────────────────────────────────────────
+# OS
+# ────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ────────────────────────────────────────────────
+# Logs
+# ────────────────────────────────────────────────
+logs/
+*.log
+log/
+
+# ────────────────────────────────────────────────
+# Temporary files
+# ────────────────────────────────────────────────
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.*.sw?
+
+# ────────────────────────────────────────────────
+# Project specific
+# ────────────────────────────────────────────────
+# Backup files
+*.bak
+*.backup
+
+# Local configuration overrides
+local.settings.json
+appsettings.local.json

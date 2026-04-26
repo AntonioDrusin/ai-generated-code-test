@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
+    "types": ["node"],
+    "outDir": "./dist",
+    "rootDir": "./"
+  },
+  "include": [
+    "steps/**/*.ts",
+    "features/**/*.feature"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

@@ -1,0 +1,1215 @@
+openapi: 3.0.3
+info:
+  title: Music Stream Order & Delivery System
+  description: |
+    API for managing music stream orders and deliveries, tracking customer requests,
+    stream consumption, and author payments. Designed for performance testing.
+    All operations are multi-tenant, scoped by the required `X-Tenant-ID` request header.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development server
+
+tags:
+  - name: Authors
+    description: Author management
+  - name: Customers
+    description: Customer management
+  - name: Music Streams
+    description: Music stream catalog
+  - name: Stream Requests
+    description: Customer stream request workflows
+  - name: Stream Deliveries
+    description: Stream delivery and consumption
+  - name: Reporting
+    description: Payment and analytics
+
+paths:
+
+  # ──────────────────────────────────────────────
+  # Authors
+  # ──────────────────────────────────────────────
+
+  /authors:
+    get:
+      tags: [Authors]
+      operationId: listAuthors
+      summary: List all authors
+      description: Retrieves all authors for the current tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: List of authors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Author'
+                  total:
+                    type: integer
+                    description: Total number of authors
+    post:
+      tags: [Authors]
+      operationId: createAuthor
+      summary: Create a new author
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuthorRequest'
+            example:
+              name: "Hans Zimmer"
+              country: "DE"
+      responses:
+        '201':
+          description: Author created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "VALIDATION_ERROR"
+                message: "name is required"
+
+  /authors/{author_id}:
+    get:
+      tags: [Authors]
+      operationId: getAuthor
+      summary: Get author by ID
+      description: Retrieves a single author by ID. Author must belong to the current tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: author_id
+          in: path
+          required: true
+          description: Unique identifier of the author
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Author found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '404':
+          description: Author not found (or belongs to different tenant)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "AUTHOR_NOT_FOUND"
+                message: "Author with the given id does not exist"
+
+  # ──────────────────────────────────────────────
+  # Customers
+  # ──────────────────────────────────────────────
+
+  /customers:
+    get:
+      tags: [Customers]
+      operationId: listCustomers
+      summary: List all customers
+      description: Retrieves all customers for the current tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customer'
+                  total:
+                    type: integer
+                    description: Total number of customers
+    post:
+      tags: [Customers]
+      operationId: createCustomer
+      summary: Create a new customer
+      description: Creates a new customer with status `active` and zero balance.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+            example:
+              name: "Jane Doe"
+              email: "jane@example.com"
+      responses:
+        '201':
+          description: Customer created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "VALIDATION_ERROR"
+                message: "email is required"
+
+  /customers/{customer_id}:
+    get:
+      tags: [Customers]
+      operationId: getCustomer
+      summary: Get customer by ID
+      description: Retrieves a single customer by ID. Customer must belong to the current tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CustomerId'
+      responses:
+        '200':
+          description: Customer found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '404':
+          description: Customer not found (or belongs to different tenant)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "CUSTOMER_NOT_FOUND"
+                message: "Customer with the given id does not exist"
+
+  /customers/{customer_id}/deactivate:
+    post:
+      tags: [Customers]
+      operationId: deactivateCustomer
+      summary: Deactivate a customer
+      description: Sets customer status to `inactive`. Inactive customers' pending stream requests will be denied during approval.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CustomerId'
+      responses:
+        '200':
+          description: Customer deactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "CUSTOMER_NOT_FOUND"
+                message: "Customer with the given id does not exist"
+        '409':
+          description: Customer is already inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "ALREADY_INACTIVE"
+                message: "Customer is already inactive"
+
+  /customers/{customer_id}/activate:
+    post:
+      tags: [Customers]
+      operationId: activateCustomer
+      summary: Activate a customer
+      description: Sets customer status to `active`.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CustomerId'
+      responses:
+        '200':
+          description: Customer activated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "CUSTOMER_NOT_FOUND"
+                message: "Customer with the given id does not exist"
+        '409':
+          description: Customer is already active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "ALREADY_ACTIVE"
+                message: "Customer is already active"
+
+  /customers/{customer_id}/balance:
+    post:
+      tags: [Customers]
+      operationId: addCustomerBalance
+      summary: Add balance to a customer account
+      description: Adds the specified amount to the customer's current balance.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CustomerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBalanceRequest'
+            example:
+              amount: 50.00
+      responses:
+        '200':
+          description: Balance updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          description: Validation error (e.g. negative amount)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "VALIDATION_ERROR"
+                message: "amount must be greater than zero"
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "CUSTOMER_NOT_FOUND"
+                message: "Customer with the given id does not exist"
+
+  # ──────────────────────────────────────────────
+  # Music Streams
+  # ──────────────────────────────────────────────
+
+  /streams:
+    get:
+      tags: [Music Streams]
+      operationId: listStreams
+      summary: List all music streams
+      description: Retrieves all music streams for the current tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: List of music streams
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  streams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MusicStream'
+                  total:
+                    type: integer
+                    description: Total number of streams
+    post:
+      tags: [Music Streams]
+      operationId: createStream
+      summary: Create a new music stream
+      description: Adds a new music stream to the catalog. The referenced author must exist.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStreamRequest'
+            example:
+              title: "Time"
+              author_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+              size_mb: 8.5
+              duration_seconds: 295
+              cost: 0.99
+              genre: "Soundtrack"
+              release_date: "2010-07-13"
+              bitrate: 320
+      responses:
+        '201':
+          description: Music stream created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MusicStream'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "VALIDATION_ERROR"
+                message: "title is required"
+        '404':
+          description: Referenced author not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "AUTHOR_NOT_FOUND"
+                message: "Author with the given id does not exist"
+
+  /streams/{stream_id}:
+    get:
+      tags: [Music Streams]
+      operationId: getStream
+      summary: Get music stream by ID
+      description: Retrieves a single music stream by ID. Stream must belong to the current tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: stream_id
+          in: path
+          required: true
+          description: Unique identifier of the music stream
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Music stream found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MusicStream'
+        '404':
+          description: Music stream not found (or belongs to different tenant)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MUSIC_STREAM_NOT_FOUND"
+                message: "Music stream with the given id does not exist"
+
+  # ──────────────────────────────────────────────
+  # Stream Requests
+  # ──────────────────────────────────────────────
+
+  /stream-requests:
+    get:
+      tags: [Stream Requests]
+      operationId: listStreamRequests
+      summary: List all stream requests
+      description: Retrieves all stream requests for the current tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: List of stream requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StreamRequest'
+                  total:
+                    type: integer
+                    description: Total number of stream requests
+    post:
+      tags: [Stream Requests]
+      operationId: requestStream
+      summary: Request a music stream
+      description: |
+        Customer creates a stream request for a specific music stream.
+        Requests are free. The request date is provided in the body for testing purposes.
+        Created with status `pending`.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStreamRequestRequest'
+            example:
+              customer_id: "c1d2e3f4-a5b6-7890-cdef-123456789012"
+              music_stream_id: "m1n2o3p4-q5r6-7890-stuv-wxyz12345678"
+              requested_at: "2026-04-26T10:00:00Z"
+      responses:
+        '201':
+          description: Stream request created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamRequest'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "VALIDATION_ERROR"
+                message: "customer_id is required"
+        '404':
+          description: Customer or music stream not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                customer_not_found:
+                  summary: Customer not found
+                  value:
+                    error: "CUSTOMER_NOT_FOUND"
+                    message: "Customer with the given id does not exist"
+                stream_not_found:
+                  summary: Music stream not found
+                  value:
+                    error: "MUSIC_STREAM_NOT_FOUND"
+                    message: "Music stream with the given id does not exist"
+
+  /stream-requests/{request_id}:
+    get:
+      tags: [Stream Requests]
+      operationId: getStreamRequest
+      summary: Get stream request by ID
+      description: Retrieves a single stream request by ID. Request must belong to the current tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: request_id
+          in: path
+          required: true
+          description: Unique identifier of the stream request
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Stream request found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamRequest'
+        '404':
+          description: Stream request not found (or belongs to different tenant)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "STREAM_REQUEST_NOT_FOUND"
+                message: "Stream request with the given id does not exist"
+
+  /stream-requests/approve:
+    post:
+      tags: [Stream Requests]
+      operationId: approveStreamRequests
+      summary: Batch approve pending stream requests
+      description: |
+        Approves all `pending` stream requests with `requested_at` on or before the given datetime.
+
+        **Business rules:**
+        - Requests for `active` customers → status set to `approved`
+        - Requests for `inactive` customers → status set to `denied`
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveStreamRequestsRequest'
+            example:
+              approve_before: "2026-04-26T12:00:00Z"
+      responses:
+        '200':
+          description: Approval batch completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApproveStreamRequestsResponse'
+              example:
+                approved_count: 42
+                denied_count: 3
+                processed_at: "2026-04-26T13:00:00Z"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "VALIDATION_ERROR"
+                message: "approve_before is required"
+
+  # ──────────────────────────────────────────────
+  # Stream Deliveries
+  # ──────────────────────────────────────────────
+
+  /stream-deliveries:
+    get:
+      tags: [Stream Deliveries]
+      operationId: listStreamDeliveries
+      summary: List all stream deliveries
+      description: Retrieves all stream deliveries for the current tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: List of stream deliveries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deliveries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StreamDelivery'
+                  total:
+                    type: integer
+                    description: Total number of stream deliveries
+    post:
+      tags: [Stream Deliveries]
+      operationId: initiateStreamDelivery
+      summary: Initiate a stream delivery
+      description: |
+        Customer initiates streaming for a music stream. The system finds the oldest
+        `approved` stream request for this customer + music stream combination and
+        creates a delivery.
+
+        **Business rules:**
+        - Customer must be `active`
+        - An `approved` stream request must exist for this customer and music stream
+        - If multiple approved requests exist, the oldest one (by `requested_at`) is used
+        - Customer balance must be >= music stream cost; balance is deducted on delivery creation
+        - If balance is insufficient, delivery is denied and balance is unchanged
+        - Returns a fake stream URL
+        - Sets a short expiration time (a few seconds, for performance testing)
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiateDeliveryRequest'
+            example:
+              customer_id: "c1d2e3f4-a5b6-7890-cdef-123456789012"
+              music_stream_id: "m1n2o3p4-q5r6-7890-stuv-wxyz12345678"
+      responses:
+        '201':
+          description: Stream delivery initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamDelivery'
+              example:
+                id: "d1e2f3a4-b5c6-7890-defg-hijklmn12345"
+                stream_request_id: "r1s2t3u4-v5w6-7890-xyza-bcdefgh12345"
+                customer_id: "c1d2e3f4-a5b6-7890-cdef-123456789012"
+                music_stream_id: "m1n2o3p4-q5r6-7890-stuv-wxyz12345678"
+                status: "active"
+                stream_url: "https://fake-stream.example.com/delivery/d1e2f3a4-b5c6-7890-defg-hijklmn12345"
+                initiated_at: "2026-04-26T13:30:00Z"
+                expires_at: "2026-04-26T13:30:05Z"
+                completed_at: null
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "VALIDATION_ERROR"
+                message: "customer_id is required"
+        '404':
+          description: Customer or music stream not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                customer_not_found:
+                  summary: Customer not found
+                  value:
+                    error: "CUSTOMER_NOT_FOUND"
+                    message: "Customer with the given id does not exist"
+                stream_not_found:
+                  summary: Music stream not found
+                  value:
+                    error: "MUSIC_STREAM_NOT_FOUND"
+                    message: "Music stream with the given id does not exist"
+        '409':
+          description: Business rule violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                customer_inactive:
+                  summary: Customer is inactive
+                  value:
+                    error: "CUSTOMER_INACTIVE"
+                    message: "Customer is not active"
+                no_approved_request:
+                  summary: No approved stream request found
+                  value:
+                    error: "NO_APPROVED_REQUEST"
+                    message: "No approved stream request found for this customer and music stream"
+                insufficient_balance:
+                  summary: Insufficient balance
+                  value:
+                    error: "INSUFFICIENT_BALANCE"
+                    message: "Customer balance is insufficient for this stream"
+
+  /stream-deliveries/{delivery_id}:
+    get:
+      tags: [Stream Deliveries]
+      operationId: getStreamDelivery
+      summary: Get stream delivery by ID
+      description: Retrieves a single stream delivery by ID. Delivery must belong to the current tenant.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: delivery_id
+          in: path
+          required: true
+          description: Unique identifier of the stream delivery
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Stream delivery found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamDelivery'
+        '404':
+          description: Stream delivery not found (or belongs to different tenant)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "STREAM_DELIVERY_NOT_FOUND"
+                message: "Stream delivery with the given id does not exist"
+
+  /stream-deliveries/expire:
+    post:
+      tags: [Stream Deliveries]
+      operationId: expireStreamDeliveries
+      summary: Expire active stream deliveries
+      description: |
+        Transitions all `active` stream deliveries whose `expires_at` is on or before
+        the given datetime to status `done`. Sets `completed_at` to the provided datetime.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpireDeliveriesRequest'
+            example:
+              expire_before: "2026-04-26T13:35:00Z"
+      responses:
+        '200':
+          description: Expiration batch completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpireDeliveriesResponse'
+              example:
+                expired_count: 15
+                processed_at: "2026-04-26T13:35:00Z"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "VALIDATION_ERROR"
+                message: "expire_before is required"
+
+  # ──────────────────────────────────────────────
+  # Reporting
+  # ──────────────────────────────────────────────
+
+  /reports/author-payments:
+    get:
+      tags: [Reporting]
+      operationId: getAuthorPayments
+      summary: Get author payment amounts
+      description: |
+        Returns payment summary for all authors based on completed (`done`) stream deliveries.
+
+        **Calculation per author:**
+        For each music stream owned by the author, count the number of `done` deliveries
+        and multiply by the stream's cost. Sum across all streams for the author total.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Author payment report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorPaymentsResponse'
+              example:
+                payments:
+                  - author_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    author_name: "Hans Zimmer"
+                    country: "DE"
+                    total_completed_streams: 150
+                    total_payment_amount: 148.50
+                  - author_id: "a9b8c7d6-e5f4-3210-abcd-fedcba098765"
+                    author_name: "Ludovico Einaudi"
+                    country: "IT"
+                    total_completed_streams: 85
+                    total_payment_amount: 127.50
+                total_authors: 2
+                grand_total_amount: 276.00
+
+# ════════════════════════════════════════════════
+# Components
+# ════════════════════════════════════════════════
+
+components:
+
+  parameters:
+    TenantId:
+      name: X-Tenant-ID
+      in: header
+      required: true
+      description: Tenant identifier. All operations are scoped to this tenant.
+      schema:
+        type: string
+        format: uuid
+    CustomerId:
+      name: customer_id
+      in: path
+      required: true
+      description: Unique identifier of the customer
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+
+    # ── Request Bodies ────────────────────────────
+
+    CreateAuthorRequest:
+      type: object
+      required: [name, country]
+      properties:
+        name:
+          type: string
+          description: Author's full name
+          minLength: 1
+          maxLength: 255
+        country:
+          type: string
+          description: ISO 3166-1 alpha-2 country code (for future tax calculations)
+          minLength: 2
+          maxLength: 2
+          example: "DE"
+
+    CreateCustomerRequest:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          description: Customer's full name
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          description: Customer's email address
+          maxLength: 255
+
+    AddBalanceRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          format: decimal
+          description: Amount to add to the customer's balance
+          minimum: 0.01
+          example: 50.00
+
+    CreateStreamRequest:
+      type: object
+      required: [title, author_id, size_mb, duration_seconds, cost, genre]
+      properties:
+        title:
+          type: string
+          description: Title of the music stream
+          minLength: 1
+          maxLength: 500
+        author_id:
+          type: string
+          format: uuid
+          description: ID of the author who created this stream
+        size_mb:
+          type: number
+          format: decimal
+          description: File size in megabytes
+          minimum: 0.01
+        duration_seconds:
+          type: integer
+          description: Duration of the stream in seconds
+          minimum: 1
+        cost:
+          type: number
+          format: decimal
+          description: Cost per completed stream delivery (author payment)
+          minimum: 0.00
+        genre:
+          type: string
+          description: Music genre
+          minLength: 1
+          maxLength: 100
+        release_date:
+          type: string
+          format: date
+          description: Release date of the music stream
+        bitrate:
+          type: integer
+          description: Audio quality in kbps
+          minimum: 1
+          example: 320
+
+    CreateStreamRequestRequest:
+      type: object
+      required: [customer_id, music_stream_id, requested_at]
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+          description: ID of the requesting customer
+        music_stream_id:
+          type: string
+          format: uuid
+          description: ID of the music stream being requested
+        requested_at:
+          type: string
+          format: date-time
+          description: Timestamp of the request (provided in body for testing)
+
+    ApproveStreamRequestsRequest:
+      type: object
+      required: [approve_before]
+      properties:
+        approve_before:
+          type: string
+          format: date-time
+          description: |
+            Approve all pending requests with `requested_at` on or before this datetime.
+            Requests for active customers are approved; requests for inactive customers are denied.
+
+    InitiateDeliveryRequest:
+      type: object
+      required: [customer_id, music_stream_id]
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+          description: ID of the customer initiating the stream
+        music_stream_id:
+          type: string
+          format: uuid
+          description: ID of the music stream to deliver
+
+    ExpireDeliveriesRequest:
+      type: object
+      required: [expire_before]
+      properties:
+        expire_before:
+          type: string
+          format: date-time
+          description: |
+            Expire all active deliveries whose `expires_at` is on or before this datetime.
+
+    # ── Response Bodies ───────────────────────────
+
+    Author:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant this entity belongs to
+        name:
+          type: string
+        country:
+          type: string
+          description: ISO 3166-1 alpha-2 country code
+        created_at:
+          type: string
+          format: date-time
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant this entity belongs to
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum: [active, inactive]
+        balance:
+          type: number
+          format: decimal
+          description: Current account balance
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    MusicStream:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant this entity belongs to
+        title:
+          type: string
+        author_id:
+          type: string
+          format: uuid
+        size_mb:
+          type: number
+          format: decimal
+        duration_seconds:
+          type: integer
+        cost:
+          type: number
+          format: decimal
+        genre:
+          type: string
+        release_date:
+          type: string
+          format: date
+        bitrate:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    StreamRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant this entity belongs to
+        customer_id:
+          type: string
+          format: uuid
+        music_stream_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, approved, denied]
+        requested_at:
+          type: string
+          format: date-time
+        processed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    StreamDelivery:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant this entity belongs to
+        stream_request_id:
+          type: string
+          format: uuid
+        customer_id:
+          type: string
+          format: uuid
+        music_stream_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, done]
+        stream_url:
+          type: string
+          format: uri
+          description: Fake URL at which the stream could be streamed
+        initiated_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          description: Short expiration for testing (a few seconds after initiated_at)
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Set when delivery transitions to done
+
+    ApproveStreamRequestsResponse:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant this entity belongs to
+        approved_count:
+          type: integer
+          description: Number of requests approved (active customers)
+        denied_count:
+          type: integer
+          description: Number of requests denied (inactive customers)
+        processed_at:
+          type: string
+          format: date-time
+
+    ExpireDeliveriesResponse:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant this entity belongs to
+        expired_count:
+          type: integer
+          description: Number of deliveries transitioned from active to done
+        processed_at:
+          type: string
+          format: date-time
+
+    AuthorPaymentEntry:
+      type: object
+      properties:
+        author_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant this entity belongs to
+        author_name:
+          type: string
+        country:
+          type: string
+          description: ISO 3166-1 alpha-2 country code
+        total_completed_streams:
+          type: integer
+          description: Total number of completed (done) stream deliveries
+        total_payment_amount:
+          type: number
+          format: decimal
+          description: Sum of (completed deliveries × stream cost) across all author's streams
+
+    AuthorPaymentsResponse:
+      type: object
+      properties:
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthorPaymentEntry'
+        total_authors:
+          type: integer
+          description: Number of authors in the report
+        grand_total_amount:
+          type: number
+          format: decimal
+          description: Sum of all author payment amounts
+
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - VALIDATION_ERROR
+            - CUSTOMER_NOT_FOUND
+            - AUTHOR_NOT_FOUND
+            - MUSIC_STREAM_NOT_FOUND
+            - ALREADY_ACTIVE
+            - ALREADY_INACTIVE
+            - CUSTOMER_INACTIVE
+            - NO_APPROVED_REQUEST
+            - INSUFFICIENT_BALANCE
+            - STREAM_REQUEST_NOT_FOUND
+            - STREAM_DELIVERY_NOT_FOUND
+        message:
+          type: string
+          description: Human-readable error description
