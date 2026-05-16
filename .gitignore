@@ -180,3 +180,10 @@ log/
 # Local configuration overrides
 local.settings.json
 appsettings.local.json
+
+# ────────────────────────────────────────────────
+# Generated API client libraries (see api/generate.sh)
+# ────────────────────────────────────────────────
+csharp/api-library/Generated/
+python/api-library/
+acceptance/api-library/src/schema.d.ts

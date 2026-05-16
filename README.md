@@ -4,17 +4,21 @@ Multi-language implementation comparison for performance testing API.
 
 ## Quick Start
 
-Run everything in 3 simple commands:
+Run everything in 4 simple commands:
 
 ```bash
-# 1. Start the database
+# 1. Generate the typed API client libraries from openapi.yaml
+#    (required before any language can compile or test — see "API Client Libraries" below)
+bash api/generate.sh
+
+# 2. Start the database
 docker-compose up -d
 
-# 2. Start the Python API (in the python directory)
+# 3. Start the Python API (in the python directory)
 cd python
 uvicorn app.main:app --port 8080
 
-# 3. Run the acceptance tests (in a new terminal, in the acceptance directory)
+# 4. Run the acceptance tests (in a new terminal, in the acceptance directory)
 cd acceptance
 npm test                         # Run all Cucumber tests
 ```
@@ -33,6 +37,10 @@ pip install -r requirements.txt
 # Install Node dependencies for tests (one-time setup)
 cd ../acceptance
 npm install
+
+# Generate API client libraries (required — outputs are gitignored)
+cd ..
+bash api/generate.sh
 ```
 
 ## Stopping Services
@@ -87,7 +95,25 @@ docker-compose down -v
 
 ## API Documentation
 
-See [OpenAPI Specification](openapi.yaml) for complete API documentation.
+See [OpenAPI Specification](api/openapi.yaml) for complete API documentation.
+
+## API Client Libraries
+
+Typed client libraries are generated from `api/openapi.yaml` for all three languages
+and are consumed by the per-language projects. **The generated output is gitignored**,
+so the generator must be run before building or testing any language:
+
+```bash
+bash api/generate.sh
+```
+
+Re-run it any time `api/openapi.yaml` changes. Outputs:
+
+| Language   | Tool                        | Output                                         |
+|------------|-----------------------------|------------------------------------------------|
+| C#         | Kiota                       | `csharp/api-library/Generated/`                |
+| Python     | openapi-python-client       | `python/api-library/`                          |
+| TypeScript | openapi-typescript + openapi-fetch | `acceptance/api-library/src/schema.d.ts` |
 
 ## Domain Model
 
