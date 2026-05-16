@@ -2,6 +2,48 @@
 
 Multi-language implementation comparison for performance testing API.
 
+## Quick Start
+
+Run everything in 3 simple commands:
+
+```bash
+# 1. Start the database
+docker-compose up -d
+
+# 2. Start the Python API (in the python directory)
+cd python
+uvicorn app.main:app --port 8080
+
+# 3. Run the acceptance tests (in a new terminal, in the acceptance directory)
+cd acceptance
+npx playwright test
+```
+
+That's it! The API will be available at `http://localhost:8080/docs`
+
+## First Time Setup
+
+If this is your first time running the project:
+
+```bash
+# Install Python dependencies (one-time setup)
+cd python
+pip install -r requirements.txt
+
+# Install Node dependencies for tests (one-time setup)
+cd ../acceptance
+npm install
+```
+
+## Stopping Services
+
+```bash
+# Stop API: Ctrl+C in the terminal
+# Stop database: docker-compose down
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -13,80 +55,28 @@ lang-compare/
 └── README.md
 ```
 
-## Quick Start
+## Database Connection
 
-### 1. Start PostgreSQL Database
-
-```bash
-# Start PostgreSQL in Docker
-docker-compose up -d
-
-# Verify it's running
-docker-compose ps
-
-# View logs
-docker-compose logs -f postgres
-```
-
-**Database Connection:**
 - Host: `localhost:5432`
 - Database: `music_stream_dev`
 - User: `music_api`
 - Password: `music_api_password`
 - Connection String: `postgresql://music_api:music_api_password@localhost:5432/music_stream_dev`
 
-### 2. Run Python API
+## Additional Commands
 
 ```bash
-cd python
-
-# Create virtual environment (first time only)
-python -m venv venv
-
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# Install dependencies (first time only)
-pip install -r requirements.txt
-
-# Run the API
-uvicorn app.main:app --reload --port 8080
-```
-
-API will be available at: `http://localhost:8080`
-- Swagger UI: `http://localhost:8080/docs`
-- ReDoc: `http://localhost:8080/redoc`
-
-### 3. Run Acceptance Tests
-
-```bash
-cd acceptance
-
-# Install dependencies (first time only)
-npm install
-
-# Run tests
-npx playwright test
+# View database logs
+docker-compose logs -f postgres
 
 # Run specific test
+cd acceptance
 npx playwright test tests/02-author-management.spec.ts
 
-# View report
+# View test report
 npx playwright show-report
-```
 
-## Stopping Services
-
-```bash
-# Stop API: Ctrl+C in the terminal
-
-# Stop PostgreSQL
-docker-compose down
-
-# Stop and remove all data
+# Stop and remove all database data
 docker-compose down -v
 ```
 
