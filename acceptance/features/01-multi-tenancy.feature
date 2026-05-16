@@ -122,4 +122,5 @@ Feature: Multi-Tenancy
 
   Scenario: Missing tenant header should fail
     When I make a request without a tenant header to create an author
-    Then the request should fail with status 400 or 401
+    Then the request should fail with status 400
+    And the error should be "VALIDATION_ERROR"

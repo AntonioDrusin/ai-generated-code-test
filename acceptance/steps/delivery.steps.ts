@@ -33,6 +33,11 @@ Then('the stream delivery should have music_stream_id {string}', async function 
   expect(this.lastResponse.music_stream_id).toBe(expectedId);
 });
 
+Then('the stream delivery should have stream_request_id {string}', async function (this: ApiWorld, requestId: string) {
+  const expectedId = this.replaceVariables(requestId);
+  expect(this.lastResponse.stream_request_id).toBe(expectedId);
+});
+
 Then('the stream delivery should have a stream_url', async function (this: ApiWorld) {
   expect(this.lastResponse.stream_url).toBeDefined();
   expect(typeof this.lastResponse.stream_url).toBe('string');

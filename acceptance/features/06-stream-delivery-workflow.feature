@@ -10,10 +10,12 @@ Feature: Stream Delivery Workflow
     And I store the customer id as "customerId"
     And I add balance 10.00 to customer "{customerId}"
     And I create a stream request for customer "{customerId}" and stream "{streamId}" at "2026-04-26T10:00:00Z"
+    And I store the stream request id as "requestId"
     And I approve stream requests before "2026-04-26T12:00:00Z"
     When I initiate a stream delivery for customer "{customerId}" and stream "{streamId}"
     Then the stream delivery should be initiated successfully
     And the stream delivery should have status "active"
+    And the stream delivery should have stream_request_id "{requestId}"
     And the stream delivery should have customer_id "{customerId}"
     And the stream delivery should have music_stream_id "{streamId}"
     And the stream delivery should have a stream_url
@@ -110,12 +112,13 @@ Feature: Stream Delivery Workflow
     And I store the customer id as "customerId"
     And I add balance 10.00 to customer "{customerId}"
     And I create a stream request for customer "{customerId}" and stream "{streamId}" at "2026-04-26T10:00:00Z"
+    And I store the stream request id as "firstRequestId"
     And I approve stream requests before "2026-04-26T12:00:00Z"
     And I create a stream request for customer "{customerId}" and stream "{streamId}" at "2026-04-26T11:00:00Z"
     And I approve stream requests before "2026-04-26T12:00:00Z"
     When I initiate a stream delivery for customer "{customerId}" and stream "{streamId}"
     Then the stream delivery should be initiated successfully
-    And the stream delivery should reference the first approved request
+    And the stream delivery should have stream_request_id "{firstRequestId}"
 
   Scenario: Expire stream deliveries
     Given I create an author with name "Test Author" and country "US"

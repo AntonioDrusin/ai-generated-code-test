@@ -128,8 +128,8 @@ Represents an active or completed stream session. Only created when a stream is 
 
 ### Customer Management
 - **Create Customer** `POST /customers`: Register a new customer (default status: `active`, balance: 0)
-- **Deactivate Customer** `POST /customers/{id}/deactivate`: Set customer status to `inactive`
-- **Activate Customer** `POST /customers/{id}/activate`: Set customer status to `active`
+- **Deactivate Customer** `POST /customers/{id}/deactivate`: Set customer status to `inactive` (idempotent - succeeds even if already inactive)
+- **Activate Customer** `POST /customers/{id}/activate`: Set customer status to `active` (idempotent - succeeds even if already active)
 - **Add Balance** `POST /customers/{id}/balance`: Add funds to customer balance
 
 ### Music Stream Management

@@ -29,12 +29,12 @@ Feature: Customer Management
     Then the customer should be activated successfully
     And the customer should have status "active"
 
-  Scenario: Cannot activate an already active customer
+  Scenario: Activate an already active customer is idempotent
     Given I create a customer with name "Test User" and email "test@example.com"
     And I store the customer id as "customerId"
     When I activate customer "{customerId}"
-    Then the request should fail with status 409
-    And the error should be "ALREADY_ACTIVE"
+    Then the customer should be activated successfully
+    And the customer should have status "active"
 
   Scenario: Deactivate a customer
     Given I create a customer with name "Test User" and email "test@example.com"
@@ -43,13 +43,13 @@ Feature: Customer Management
     Then the customer should be deactivated successfully
     And the customer should have status "inactive"
 
-  Scenario: Cannot deactivate an already inactive customer
+  Scenario: Deactivate an already inactive customer is idempotent
     Given I create a customer with name "Test User" and email "test@example.com"
     And I store the customer id as "customerId"
     And I deactivate customer "{customerId}"
     When I deactivate customer "{customerId}"
-    Then the request should fail with status 409
-    And the error should be "ALREADY_INACTIVE"
+    Then the customer should be deactivated successfully
+    And the customer should have status "inactive"
 
   Scenario: Add balance to customer account
     Given I create a customer with name "Test User" and email "test@example.com"
