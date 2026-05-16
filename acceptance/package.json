@@ -3,18 +3,14 @@
   "version": "1.0.0",
   "description": "Acceptance tests for Music Stream Order & Delivery System",
   "scripts": {
-    "test": "bddgen && playwright test",
-    "test:headed": "bddgen && playwright test --headed",
-    "test:ui": "bddgen && playwright test --ui",
-    "test:debug": "bddgen && playwright test --debug",
-    "bddgen": "bddgen",
-    "report": "playwright show-report"
+    "test": "npm run cucumber",
+    "cucumber": "cucumber-js"
   },
   "keywords": [
-    "playwright",
     "bdd",
     "cucumber",
-    "acceptance-tests"
+    "acceptance-tests",
+    "api-testing"
   ],
   "author": "",
   "license": "ISC",

@@ -16,7 +16,7 @@ uvicorn app.main:app --port 8080
 
 # 3. Run the acceptance tests (in a new terminal, in the acceptance directory)
 cd acceptance
-npx playwright test
+npm test                         # Run all Cucumber tests
 ```
 
 That's it! The API will be available at `http://localhost:8080/docs`
@@ -50,7 +50,7 @@ npm install
 lang-compare/
 ├── python/           # Python FastAPI implementation
 ├── csharp/          # C# implementation (future)
-├── acceptance/      # Playwright acceptance tests
+├── acceptance/      # Cucumber BDD acceptance tests
 ├── docker-compose.yml
 └── README.md
 ```
@@ -69,12 +69,17 @@ lang-compare/
 # View database logs
 docker-compose logs -f postgres
 
-# Run specific test
+# Run acceptance tests (Cucumber BDD)
 cd acceptance
-npx playwright test tests/02-author-management.spec.ts
+npm test                         # Run all tests
+npm run cucumber                 # Run all Cucumber features
+npm run cucumber:author          # Run only author management tests
+npm run cucumber:multi-tenancy   # Run only multi-tenancy tests
+npx cucumber-js features/02-author-management.feature  # Run specific feature
 
-# View test report
-npx playwright show-report
+# View test reports
+cd acceptance
+# HTML report is generated at cucumber-report.html after each run
 
 # Stop and remove all database data
 docker-compose down -v

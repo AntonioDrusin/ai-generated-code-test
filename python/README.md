@@ -76,11 +76,12 @@ Current tables:
 
 ## Testing
 
-Run acceptance tests from the `acceptance` directory:
+Run Cucumber acceptance tests from the `acceptance` directory:
 
 ```bash
 cd ../acceptance
-npx playwright test tests/02-author-management.spec.ts
+npm test                         # Run all tests
+npm run cucumber:author          # Run author management tests
 ```
 
 ## Implementation Status
