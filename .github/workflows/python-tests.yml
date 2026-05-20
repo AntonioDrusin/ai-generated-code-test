@@ -50,14 +50,9 @@ jobs:
         working-directory: python
         run: pytest tests/ --junitxml=pytest-results.xml
 
-      - name: Publish Python test results
+      - name: Publish Python test results to summary
         if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: Python unit tests
-          path: python/pytest-results.xml
-          reporter: java-junit
-          fail-on-error: false
+        run: python .github/workflows/junit_to_summary.py python/pytest-results.xml "Python unit tests"
 
       - name: Start Python API server
         working-directory: python
@@ -93,14 +88,9 @@ jobs:
         working-directory: acceptance
         run: npx cucumber-js --format "junit:cucumber-results.xml" --format "html:cucumber-report.html" --format progress
 
-      - name: Publish acceptance test results
+      - name: Publish acceptance test results to summary
         if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: Acceptance tests
-          path: acceptance/cucumber-results.xml
-          reporter: java-junit
-          fail-on-error: false
+        run: python .github/workflows/junit_to_summary.py acceptance/cucumber-results.xml "Acceptance tests"
 
       - name: Upload acceptance HTML report
         if: always()
