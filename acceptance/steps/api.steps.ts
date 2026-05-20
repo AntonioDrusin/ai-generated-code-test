@@ -30,11 +30,18 @@ class ApiWorld {
       await this.init();
     }
 
-    const headers = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-Tenant-ID': this.tenantId,
       ...options.headers,
     };
+    if (this.tenantId) {
+      headers['X-Tenant-ID'] = this.tenantId;
+    }
+
+    // Prefix /api for all paths unless already prefixed
+    if (endpoint.startsWith('/') && !endpoint.startsWith('/api/')) {
+      endpoint = '/api' + endpoint;
+    }
 
     try {
       const methodLower = method.toLowerCase();
@@ -112,7 +119,40 @@ Given('a tenant with id {string}', async function (this: ApiWorld, tenantId: str
 });
 
 Given('I use tenant {string}', async function (this: ApiWorld, tenantId: string) {
-  this.tenantId = tenantId;
+  const alias = this.retrieve('__tenant_' + tenantId);
+  this.tenantId = alias ?? tenantId;
+});
+
+Given('I use one tenant', function (this: ApiWorld) {
+  let id = this.retrieve('__tenant_one');
+  if (!id) {
+    id = randomUUID();
+    this.store('__tenant_one', id);
+  }
+  this.tenantId = id;
+});
+
+Given('I use one tenant as {string}', function (this: ApiWorld, alias: string) {
+  const id = randomUUID();
+  this.store('__tenant_' + alias, id);
+  this.store('__tenant_one', id);
+  this.tenantId = id;
+});
+
+When('I use a different tenant', function (this: ApiWorld) {
+  let id = this.retrieve('__tenant_diff');
+  if (!id) {
+    id = randomUUID();
+    this.store('__tenant_diff', id);
+  }
+  this.tenantId = id;
+});
+
+When('I use a different tenant as {string}', function (this: ApiWorld, alias: string) {
+  const id = randomUUID();
+  this.store('__tenant_' + alias, id);
+  this.store('__tenant_diff', id);
+  this.tenantId = id;
 });
 
 // Error handling steps

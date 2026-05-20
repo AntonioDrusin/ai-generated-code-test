@@ -140,3 +140,25 @@ Then('the two stream urls should be different', async function (this: ApiWorld) 
   const url2 = this.retrieve('url2');
   expect(url1).not.toBe(url2);
 });
+
+// Multi-tenancy alias steps for stream deliveries
+Then('The stream delivery is created successfully', function (this: ApiWorld) {
+  expect(this.lastStatusCode).toBe(201);
+  expect(this.lastResponse).toHaveProperty('id');
+  this.store('__last_stream_delivery_id', this.lastResponse.id);
+});
+
+When('I search for that stream delivery in a different tenant', async function (this: ApiWorld) {
+  const id = this.retrieve('__last_stream_delivery_id');
+  let diffId = this.retrieve('__tenant_diff');
+  if (!diffId) {
+    diffId = require('crypto').randomUUID();
+    this.store('__tenant_diff', diffId);
+  }
+  this.tenantId = diffId;
+  await this.makeRequest('GET', `/stream-deliveries/${id}`);
+});
+
+Then('The stream delivery is not found', function (this: ApiWorld) {
+  expect(this.lastStatusCode).toBe(404);
+});

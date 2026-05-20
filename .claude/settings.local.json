@@ -19,7 +19,23 @@
       "Bash(npx tsc *)",
       "WebFetch(domain:heyapi.dev)",
       "Bash(npm install *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(curl -s http://localhost:8080/api/authors -H 'X-Tenant-ID: 11111111-1111-1111-1111-111111111111' -o /dev/null -w '%{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:8080/authors -H 'X-Tenant-ID: 11111111-1111-1111-1111-111111111111' -o /dev/null -w '%{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:8080/api/customers -H 'X-Tenant-ID: 11111111-1111-1111-1111-111111111111' -o /dev/null -w '%{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:8080/api/streams -H 'X-Tenant-ID: 11111111-1111-1111-1111-111111111111' -o /dev/null -w '%{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:8080/api/stream-requests -H 'X-Tenant-ID: 11111111-1111-1111-1111-111111111111' -o /dev/null -w '%{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:8080/api/stream-deliveries -H 'X-Tenant-ID: 11111111-1111-1111-1111-111111111111' -o /dev/null -w '%{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:8080/api/reports/author-payments -H 'X-Tenant-ID: 11111111-1111-1111-1111-111111111111' -o /dev/null -w '%{http_code}\\\\n')",
+      "Bash(npx cucumber-js *)",
+      "Bash(curl *)",
+      "Bash(venv/Scripts/pip.exe install *)",
+      "Bash(venv/Scripts/python.exe -m pytest tests/ -x)",
+      "Bash(venv/Scripts/pytest.exe tests/ -x)",
+      "Bash(venv/Scripts/python.exe -c \"import sys; print\\(sys.executable\\); import sqlalchemy; print\\(sqlalchemy.__version__\\)\")",
+      "Bash(venv/Scripts/pytest.exe tests/)",
+      "Bash(venv/Scripts/pytest.exe tests/test_tenant_scope.py::TestTenantMiddleware::test_endpoint_does_not_receive_tenant_param -x)",
+      "Bash(venv/Scripts/pytest.exe tests/ -q)"
     ]
   }
 }

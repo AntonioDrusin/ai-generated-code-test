@@ -76,6 +76,24 @@ Current tables:
 
 ## Testing
 
+### Unit Tests
+
+Unit tests live in `python/tests/` and use pytest with an in-memory SQLite database — no Postgres or Docker required.
+
+Install the test dependencies once (already included in `requirements.txt` for the app itself):
+
+```bash
+pip install pytest httpx
+```
+
+Run from the `python/` directory with the venv active:
+
+```bash
+pytest tests/
+```
+
+### Acceptance Tests
+
 Run Cucumber acceptance tests from the `acceptance` directory:
 
 ```bash

@@ -177,6 +177,57 @@ When('I store the second stream request id as {string}', async function (this: A
   this.store(key, this.lastResponse.id);
 });
 
+// Multi-tenancy alias steps for streams and requests
+Then('The stream is created successfully', function (this: ApiWorld) {
+  expect(this.lastStatusCode).toBe(201);
+  expect(this.lastResponse).toHaveProperty('id');
+  this.store('__last_stream_id', this.lastResponse.id);
+});
+
+When('I search for that stream in a different tenant', async function (this: ApiWorld) {
+  const id = this.retrieve('__last_stream_id');
+  let diffId = this.retrieve('__tenant_diff');
+  if (!diffId) {
+    diffId = require('crypto').randomUUID();
+    this.store('__tenant_diff', diffId);
+  }
+  this.tenantId = diffId;
+  await this.makeRequest('GET', `/streams/${id}`);
+});
+
+Then('The stream is not found', function (this: ApiWorld) {
+  expect(this.lastStatusCode).toBe(404);
+});
+
+Then('the stream should have an id', function (this: ApiWorld) {
+  expect(this.lastResponse.id).toBeDefined();
+});
+
+Then('The stream request is created successfully', function (this: ApiWorld) {
+  expect(this.lastStatusCode).toBe(201);
+  expect(this.lastResponse).toHaveProperty('id');
+  this.store('__last_stream_request_id', this.lastResponse.id);
+});
+
+When('I search for that stream request in a different tenant', async function (this: ApiWorld) {
+  const id = this.retrieve('__last_stream_request_id');
+  let diffId = this.retrieve('__tenant_diff');
+  if (!diffId) {
+    diffId = require('crypto').randomUUID();
+    this.store('__tenant_diff', diffId);
+  }
+  this.tenantId = diffId;
+  await this.makeRequest('GET', `/stream-requests/${id}`);
+});
+
+Then('The stream request is not found', function (this: ApiWorld) {
+  expect(this.lastStatusCode).toBe(404);
+});
+
+Then('the stream request should have an id', function (this: ApiWorld) {
+  expect(this.lastResponse.id).toBeDefined();
+});
+
 // Helper steps for complex scenarios
 Given('I create {int} approved stream requests for customer {string} and stream {string}',
   async function (this: ApiWorld, count: number, customerId: string, streamId: string) {
