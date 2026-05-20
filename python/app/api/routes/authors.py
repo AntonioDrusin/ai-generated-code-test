@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.dependencies.tenant import get_tenant_scoped_db
 from app.models.author import Author
 from app.repositories.author_repository import AuthorRepository
 from app.schemas.author import AuthorResponse, CreateAuthorRequest, ListAuthorsResponse
@@ -12,8 +12,14 @@ from app.services.author_service import AuthorService
 router = APIRouter(prefix="/api/authors", tags=["Authors"])
 
 
-def get_author_service(db: AsyncSession = Depends(get_db)) -> AuthorService:
-    """Dependency that wires up the Author service with its repository."""
+def get_author_service(
+    db: AsyncSession = Depends(get_tenant_scoped_db),
+) -> AuthorService:
+    """Dependency that wires up the Author service with its repository.
+
+    `get_tenant_scoped_db` validates X-Tenant-ID and sets the tenant context for
+    the request, so the repository and event listeners can do their work transparently.
+    """
     return AuthorService(AuthorRepository(db))
 
 

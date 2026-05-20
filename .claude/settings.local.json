@@ -39,7 +39,10 @@
       "Bash(venv/Scripts/pip install *)",
       "Bash(venv/Scripts/mypy app *)",
       "Bash(venv/Scripts/ruff check *)",
-      "Bash(venv/Scripts/python -m pytest tests -q)"
+      "Bash(venv/Scripts/python -m pytest tests -q)",
+      "Bash(git push *)",
+      "Bash(git check-ignore *)",
+      "Bash(venv/Scripts/python -m pytest tests -v)"
     ]
   }
 }

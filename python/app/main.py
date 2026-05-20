@@ -1,16 +1,14 @@
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.api.routes.authors import router as authors_router
 from app.config import get_settings
 from app.database import init_db
-from app.dependencies.tenant import parse_tenant_header
 from app.exceptions import APIError, ConflictError, NotFoundError, ValidationError
-from app.tenant_context import reset_current_tenant, set_current_tenant
 
 settings = get_settings()
 
@@ -28,31 +26,6 @@ app = FastAPI(
     version=settings.api_version,
     lifespan=lifespan,
 )
-
-
-@app.middleware("http")
-async def tenant_middleware(
-    request: Request,
-    call_next: Callable[[Request], Awaitable[Response]],
-) -> Response:
-    """Read X-Tenant-ID once and stash it in the request-scoped tenant context.
-
-    For /api/* routes the header is required and must parse as a UUID. Other
-    routes (e.g. health check) skip the check; if those routes touch the DB
-    they will trip the TenantNotSetError safety rail.
-    """
-    token = None
-    if request.url.path.startswith("/api"):
-        try:
-            tenant_id = parse_tenant_header(request.headers.get("X-Tenant-ID"))
-        except HTTPException as exc:
-            return JSONResponse(status_code=exc.status_code, content=exc.detail)
-        token = set_current_tenant(tenant_id)
-    try:
-        return await call_next(request)
-    finally:
-        if token is not None:
-            reset_current_tenant(token)
 
 
 @app.get("/")
