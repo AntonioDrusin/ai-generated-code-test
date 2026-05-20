@@ -35,7 +35,11 @@
       "Bash(venv/Scripts/python.exe -c \"import sys; print\\(sys.executable\\); import sqlalchemy; print\\(sqlalchemy.__version__\\)\")",
       "Bash(venv/Scripts/pytest.exe tests/)",
       "Bash(venv/Scripts/pytest.exe tests/test_tenant_scope.py::TestTenantMiddleware::test_endpoint_does_not_receive_tenant_param -x)",
-      "Bash(venv/Scripts/pytest.exe tests/ -q)"
+      "Bash(venv/Scripts/pytest.exe tests/ -q)",
+      "Bash(venv/Scripts/pip install *)",
+      "Bash(venv/Scripts/mypy app *)",
+      "Bash(venv/Scripts/ruff check *)",
+      "Bash(venv/Scripts/python -m pytest tests -q)"
     ]
   }
 }

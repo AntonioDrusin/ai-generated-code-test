@@ -1,20 +1,21 @@
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, status, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
+from app.api.routes.authors import router as authors_router
 from app.config import get_settings
 from app.database import init_db
-from app.authors import router as authors_router
-from app.common import parse_tenant_header
-from app.tenant_context import set_current_tenant, reset_current_tenant
+from app.dependencies.tenant import parse_tenant_header
+from app.tenant_context import reset_current_tenant, set_current_tenant
 
 settings = get_settings()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize database on startup."""
     init_db()
     yield
@@ -29,7 +30,10 @@ app = FastAPI(
 
 
 @app.middleware("http")
-async def tenant_middleware(request: Request, call_next):
+async def tenant_middleware(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
     """Read X-Tenant-ID once and stash it in the request-scoped tenant context.
 
     For /api/* routes the header is required and must parse as a UUID. Other
@@ -51,7 +55,7 @@ async def tenant_middleware(request: Request, call_next):
 
 
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     """Health check endpoint."""
     return {"status": "ok", "service": "Music Stream API"}
 
@@ -60,7 +64,9 @@ app.include_router(authors_router)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
     """Handle Pydantic validation errors with custom format."""
     errors = exc.errors()
     if errors:
@@ -77,7 +83,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc: HTTPException):
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Custom error response format."""
     if isinstance(exc.detail, dict):
         return JSONResponse(

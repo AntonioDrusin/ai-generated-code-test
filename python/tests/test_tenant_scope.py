@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
@@ -8,14 +8,14 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import database
-from app.database import Author, Base, register_tenant_events
+from app.database import Base, register_tenant_events
+from app.models.author import Author
 from app.tenant_context import (
     TenantNotSetError,
     current_tenant_id,
     reset_current_tenant,
     set_current_tenant,
 )
-
 
 # ────────────────────────────────────────────────
 # Fixtures: fresh in-memory SQLite per test
