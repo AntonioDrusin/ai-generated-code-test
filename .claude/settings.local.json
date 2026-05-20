@@ -43,7 +43,11 @@
       "Bash(git push *)",
       "Bash(git check-ignore *)",
       "Bash(venv/Scripts/python -m pytest tests -v)",
-      "Bash(venv/Scripts/python.exe -m pytest tests/ --collect-only)"
+      "Bash(venv/Scripts/python.exe -m pytest tests/ --collect-only)",
+      "Bash(python -c \"from app.main import app\")",
+      "Bash(env)",
+      "Bash(python -c \"from app.main import app; print\\('OK'\\)\")",
+      "Bash(C:/dev/tests/lang-compare/venv/Scripts/pip.exe install *)"
     ]
   }
 }
