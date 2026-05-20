@@ -1,18 +1,12 @@
 import { When, Then } from '@cucumber/cucumber';
 import { expect } from '@playwright/test';
 import type { ApiWorld } from './api.steps';
-import { createAuthor } from '../api-library/src';
 
 // Author creation steps
 When('I create an author with name {string} and country {string}', async function (this: ApiWorld, name: string, country: string) {
-  const { data, error, response } = await createAuthor({
-    baseUrl: `${this.baseURL}/api`,
-    body: { name, country },
-    headers: { 'X-Tenant-ID': this.tenantId },
+  await this.makeRequest('POST', '/api/authors', {
+    data: { name, country },
   });
-  this.lastStatusCode = response.status;
-  this.lastResponse = data;
-  this.lastError = error;
 });
 
 When('I create an author with country {string} but no name', async function (this: ApiWorld, country: string) {
