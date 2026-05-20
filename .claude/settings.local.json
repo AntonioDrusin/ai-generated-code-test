@@ -47,7 +47,8 @@
       "Bash(python -c \"from app.main import app\")",
       "Bash(env)",
       "Bash(python -c \"from app.main import app; print\\('OK'\\)\")",
-      "Bash(C:/dev/tests/lang-compare/venv/Scripts/pip.exe install *)"
+      "Bash(C:/dev/tests/lang-compare/venv/Scripts/pip.exe install *)",
+      "Bash(DATABASE_URL=\"postgresql://music_api:music_api_password@localhost:5432/music_stream_dev\" python -c \"from app.main import app; print\\('OK'\\)\")"
     ]
   }
 }

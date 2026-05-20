@@ -11,8 +11,18 @@ from app.config import get_settings
 
 settings = get_settings()
 
+
+def _async_url(url: str) -> str:
+    """Ensure the URL uses an async driver."""
+    if url.startswith("postgresql://"):
+        return "postgresql+asyncpg://" + url[len("postgresql://") :]
+    if url.startswith("postgres://"):
+        return "postgresql+asyncpg://" + url[len("postgres://") :]
+    return url
+
+
 engine = create_async_engine(
-    settings.database_url,
+    _async_url(settings.database_url),
     pool_pre_ping=True,
     echo=False,
 )
