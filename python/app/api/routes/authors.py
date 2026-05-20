@@ -1,14 +1,20 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.author import Author
+from app.repositories.author_repository import AuthorRepository
 from app.schemas.author import AuthorResponse, CreateAuthorRequest, ListAuthorsResponse
+from app.services.author_service import AuthorService
 
 router = APIRouter(prefix="/api/authors", tags=["Authors"])
+
+
+def get_author_service(db: AsyncSession = Depends(get_db)) -> AuthorService:
+    """Dependency that wires up the Author service with its repository."""
+    return AuthorService(AuthorRepository(db))
 
 
 @router.post(
@@ -18,26 +24,18 @@ router = APIRouter(prefix="/api/authors", tags=["Authors"])
 )
 async def create_author(
     author_request: CreateAuthorRequest,
-    db: AsyncSession = Depends(get_db),
+    service: AuthorService = Depends(get_author_service),
 ) -> Author:
     """Create a new author."""
-    db_author = Author(
-        name=author_request.name,
-        country=author_request.country,
-    )
-
-    db.add(db_author)
-    await db.commit()
-    await db.refresh(db_author)
-
-    return db_author
+    return await service.create_author(author_request)
 
 
 @router.get("", response_model=ListAuthorsResponse)
-async def list_authors(db: AsyncSession = Depends(get_db)) -> ListAuthorsResponse:
+async def list_authors(
+    service: AuthorService = Depends(get_author_service),
+) -> ListAuthorsResponse:
     """List all authors for the tenant."""
-    result = await db.execute(select(Author))
-    authors = list(result.scalars().all())
+    authors = await service.list_authors()
     return ListAuthorsResponse(
         authors=[AuthorResponse.model_validate(a) for a in authors],
         total=len(authors),
@@ -47,19 +45,7 @@ async def list_authors(db: AsyncSession = Depends(get_db)) -> ListAuthorsRespons
 @router.get("/{author_id}", response_model=AuthorResponse)
 async def get_author(
     author_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    service: AuthorService = Depends(get_author_service),
 ) -> Author:
     """Get author by ID."""
-    result = await db.execute(select(Author).where(Author.id == author_id))
-    author = result.scalar_one_or_none()
-
-    if not author:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "error": "AUTHOR_NOT_FOUND",
-                "message": "Author with the given id does not exist",
-            },
-        )
-
-    return author
+    return await service.get_author(author_id)

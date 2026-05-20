@@ -9,6 +9,7 @@ from app.api.routes.authors import router as authors_router
 from app.config import get_settings
 from app.database import init_db
 from app.dependencies.tenant import parse_tenant_header
+from app.exceptions import APIError, ConflictError, NotFoundError, ValidationError
 from app.tenant_context import reset_current_tenant, set_current_tenant
 
 settings = get_settings()
@@ -93,6 +94,24 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": "ERROR", "message": str(exc.detail)},
+    )
+
+
+@app.exception_handler(APIError)
+async def api_error_handler(request: Request, exc: APIError) -> JSONResponse:
+    """Translate domain exceptions to HTTP responses with a uniform body shape."""
+    if isinstance(exc, NotFoundError):
+        status_code = status.HTTP_404_NOT_FOUND
+    elif isinstance(exc, ConflictError):
+        status_code = status.HTTP_409_CONFLICT
+    elif isinstance(exc, ValidationError):
+        status_code = status.HTTP_400_BAD_REQUEST
+    else:
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    return JSONResponse(
+        status_code=status_code,
+        content={"error": exc.code, "message": exc.message},
     )
 
 
