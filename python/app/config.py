@@ -7,7 +7,9 @@ class Settings(BaseSettings):
     """Application settings."""
 
     # Database
-    database_url: str = "postgresql://music_api:music_api_password@localhost:5432/music_stream_dev"
+    database_url: str = (
+        "postgresql+asyncpg://music_api:music_api_password@localhost:5432/music_stream_dev"
+    )
 
     # API
     api_title: str = "Music Stream Order & Delivery System"

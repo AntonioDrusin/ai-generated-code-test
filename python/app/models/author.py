@@ -1,20 +1,16 @@
-from datetime import UTC, datetime
-from uuid import uuid4
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
 
-from sqlalchemy import Column, DateTime, String, Uuid
-
-from app.models.base import Base, TenantScoped
+from app.models.base import TenantEntity
 
 
-class Author(TenantScoped, Base):
+class Author(TenantEntity):
     """Author model for storing author information."""
 
     __tablename__ = "authors"
 
-    id = Column(Uuid, primary_key=True, default=uuid4)
-    name = Column(String(255), nullable=False)
-    country = Column(String(2), nullable=False)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    country: Mapped[str] = mapped_column(String(2), nullable=False)
 
     def __repr__(self) -> str:
         return f"<Author(id={self.id}, name={self.name}, tenant_id={self.tenant_id})>"

@@ -17,7 +17,7 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize database on startup."""
-    init_db()
+    await init_db()
     yield
 
 

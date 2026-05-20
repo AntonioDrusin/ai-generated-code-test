@@ -1,4 +1,4 @@
 from app.models.author import Author
-from app.models.base import Base, TenantScoped
+from app.models.base import Base, TenantEntity
 
-__all__ = ["Author", "Base", "TenantScoped"]
+__all__ = ["Author", "Base", "TenantEntity"]

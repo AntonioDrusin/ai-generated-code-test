@@ -1,14 +1,16 @@
-from datetime import UTC, datetime
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from app import database
-from app.database import Base, register_tenant_events
+from app.database import Base
 from app.models.author import Author
 from app.tenant_context import (
     TenantNotSetError,
@@ -21,50 +23,49 @@ from app.tenant_context import (
 # Fixtures: fresh in-memory SQLite per test
 # ────────────────────────────────────────────────
 
-@pytest.fixture
-def session_factory():
-    engine = create_engine(
-        "sqlite:///:memory:",
+@pytest_asyncio.fixture
+async def session_factory() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(bind=engine)
-    Factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    register_tenant_events(Factory.class_)
-    yield Factory
-    engine.dispose()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    yield factory
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def db(session_factory: async_sessionmaker[AsyncSession]) -> AsyncIterator[AsyncSession]:
+    async with session_factory() as session:
+        yield session
 
 
 @pytest.fixture
-def db(session_factory):
-    session = session_factory()
-    yield session
-    session.close()
-
-
-@pytest.fixture
-def tenant_a():
+def tenant_a() -> UUID:
     return uuid4()
 
 
 @pytest.fixture
-def tenant_b():
+def tenant_b() -> UUID:
     return uuid4()
 
 
 @pytest.fixture
-def with_tenant():
+def with_tenant() -> Callable[[UUID], object]:
     """Context manager-like helper that sets the tenant for the duration of a `with` block."""
-    from contextlib import contextmanager
 
-    @contextmanager
-    def _set(tenant_id: UUID):
+    @asynccontextmanager
+    async def _set(tenant_id: UUID) -> AsyncIterator[UUID]:
         token = set_current_tenant(tenant_id)
         try:
             yield tenant_id
         finally:
             reset_current_tenant(token)
 
+    # The fixture returns a plain context-manager factory; tests use `async with`.
     return _set
 
 
@@ -96,32 +97,26 @@ class TestTenantContext:
 # ────────────────────────────────────────────────
 
 class TestAutoPopulateTenantId:
-    def test_insert_populates_tenant_id_from_context(self, db, with_tenant, tenant_a):
-        with with_tenant(tenant_a):
-            author = Author(id=uuid4(), name="Hans", country="DE", created_at=datetime.now(UTC))
+    async def test_insert_populates_tenant_id_from_context(self, db, with_tenant, tenant_a):
+        async with with_tenant(tenant_a):
+            author = Author(name="Hans", country="DE")
             db.add(author)
-            db.commit()
-            db.refresh(author)
+            await db.commit()
+            await db.refresh(author)
         assert author.tenant_id == tenant_a
 
-    def test_explicit_tenant_id_is_respected(self, db, with_tenant, tenant_a, tenant_b):
-        with with_tenant(tenant_a):
-            author = Author(
-                id=uuid4(),
-                tenant_id=tenant_b,
-                name="Hans",
-                country="DE",
-                created_at=datetime.now(UTC),
-            )
+    async def test_explicit_tenant_id_is_respected(self, db, with_tenant, tenant_a, tenant_b):
+        async with with_tenant(tenant_a):
+            author = Author(tenant_id=tenant_b, name="Hans", country="DE")
             db.add(author)
-            db.commit()
+            await db.commit()
         assert author.tenant_id == tenant_b
 
-    def test_insert_without_tenant_context_raises(self, db):
-        author = Author(id=uuid4(), name="Hans", country="DE", created_at=datetime.now(UTC))
+    async def test_insert_without_tenant_context_raises(self, db):
+        author = Author(name="Hans", country="DE")
         db.add(author)
         with pytest.raises(TenantNotSetError):
-            db.commit()
+            await db.commit()
 
 
 # ────────────────────────────────────────────────
@@ -129,82 +124,79 @@ class TestAutoPopulateTenantId:
 # ────────────────────────────────────────────────
 
 class TestAutoFilter:
-    def _seed(self, factory, with_tenant, tenant, name):
-        session = factory()
-        try:
-            with with_tenant(tenant):
-                author = Author(id=uuid4(), name=name, country="DE", created_at=datetime.now(UTC))
-                session.add(author)
-                session.commit()
-                session.refresh(author)
-                return author.id
-        finally:
-            session.close()
+    async def _seed(self, factory, with_tenant, tenant, name):
+        async with factory() as session, with_tenant(tenant):
+            author = Author(name=name, country="DE")
+            session.add(author)
+            await session.commit()
+            await session.refresh(author)
+            return author.id
 
-    def test_select_only_sees_current_tenant(self, session_factory, with_tenant, tenant_a, tenant_b):
-        self._seed(session_factory, with_tenant, tenant_a, "A-author")
-        self._seed(session_factory, with_tenant, tenant_b, "B-author")
+    async def test_select_only_sees_current_tenant(
+        self, session_factory, with_tenant, tenant_a, tenant_b
+    ):
+        await self._seed(session_factory, with_tenant, tenant_a, "A-author")
+        await self._seed(session_factory, with_tenant, tenant_b, "B-author")
 
-        session = session_factory()
-        try:
-            with with_tenant(tenant_a):
-                rows = session.query(Author).all()
-            assert [r.name for r in rows] == ["A-author"]
-        finally:
-            session.close()
+        async with session_factory() as session, with_tenant(tenant_a):
+            result = await session.execute(select(Author))
+            rows = list(result.scalars().all())
+        assert [r.name for r in rows] == ["A-author"]
 
-    def test_get_by_id_misses_cross_tenant_record(self, session_factory, with_tenant, tenant_a, tenant_b):
-        a_id = self._seed(session_factory, with_tenant, tenant_a, "A-author")
+    async def test_get_by_id_misses_cross_tenant_record(
+        self, session_factory, with_tenant, tenant_a, tenant_b
+    ):
+        a_id = await self._seed(session_factory, with_tenant, tenant_a, "A-author")
 
-        session = session_factory()
-        try:
-            with with_tenant(tenant_b):
-                result = session.query(Author).filter(Author.id == a_id).first()
-            assert result is None
-        finally:
-            session.close()
+        async with session_factory() as session, with_tenant(tenant_b):
+            result = await session.execute(select(Author).where(Author.id == a_id))
+            assert result.scalar_one_or_none() is None
 
-    def test_select_without_tenant_context_raises(self, session_factory, with_tenant, tenant_a):
-        self._seed(session_factory, with_tenant, tenant_a, "A-author")
-        session = session_factory()
-        try:
+    async def test_select_without_tenant_context_raises(
+        self, session_factory, with_tenant, tenant_a
+    ):
+        await self._seed(session_factory, with_tenant, tenant_a, "A-author")
+        async with session_factory() as session:
             with pytest.raises(TenantNotSetError):
-                session.query(Author).all()
-        finally:
-            session.close()
+                await session.execute(select(Author))
 
-    def test_update_does_not_affect_other_tenants(self, session_factory, with_tenant, tenant_a, tenant_b):
-        a_id = self._seed(session_factory, with_tenant, tenant_a, "A-author")
-        b_id = self._seed(session_factory, with_tenant, tenant_b, "B-author")
+    async def test_update_does_not_affect_other_tenants(
+        self, session_factory, with_tenant, tenant_a, tenant_b
+    ):
+        a_id = await self._seed(session_factory, with_tenant, tenant_a, "A-author")
+        b_id = await self._seed(session_factory, with_tenant, tenant_b, "B-author")
 
-        session = session_factory()
-        try:
-            with with_tenant(tenant_a):
-                session.query(Author).update({Author.name: "renamed"})
-                session.commit()
+        from sqlalchemy import update as sa_update
 
-            with with_tenant(tenant_a):
-                assert session.query(Author).filter(Author.id == a_id).one().name == "renamed"
-            with with_tenant(tenant_b):
-                assert session.query(Author).filter(Author.id == b_id).one().name == "B-author"
-        finally:
-            session.close()
+        async with session_factory() as session:
+            async with with_tenant(tenant_a):
+                await session.execute(sa_update(Author).values(name="renamed"))
+                await session.commit()
 
-    def test_delete_does_not_affect_other_tenants(self, session_factory, with_tenant, tenant_a, tenant_b):
-        self._seed(session_factory, with_tenant, tenant_a, "A-author")
-        b_id = self._seed(session_factory, with_tenant, tenant_b, "B-author")
+            async with with_tenant(tenant_a):
+                result = await session.execute(select(Author).where(Author.id == a_id))
+                assert result.scalar_one().name == "renamed"
+            async with with_tenant(tenant_b):
+                result = await session.execute(select(Author).where(Author.id == b_id))
+                assert result.scalar_one().name == "B-author"
 
-        session = session_factory()
-        try:
-            with with_tenant(tenant_a):
-                session.query(Author).delete()
-                session.commit()
+    async def test_delete_does_not_affect_other_tenants(
+        self, session_factory, with_tenant, tenant_a, tenant_b
+    ):
+        await self._seed(session_factory, with_tenant, tenant_a, "A-author")
+        b_id = await self._seed(session_factory, with_tenant, tenant_b, "B-author")
 
-            with with_tenant(tenant_b):
-                remaining = session.query(Author).all()
+        from sqlalchemy import delete as sa_delete
+
+        async with session_factory() as session:
+            async with with_tenant(tenant_a):
+                await session.execute(sa_delete(Author))
+                await session.commit()
+
+            async with with_tenant(tenant_b):
+                result = await session.execute(select(Author))
+                remaining = list(result.scalars().all())
             assert [r.id for r in remaining] == [b_id]
-        finally:
-            session.close()
 
 
 # ────────────────────────────────────────────────
@@ -216,12 +208,9 @@ def client(session_factory, monkeypatch):
     """A TestClient wired to an isolated in-memory DB."""
     from app import main
 
-    def _get_db():
-        session = session_factory()
-        try:
+    async def _get_db():
+        async with session_factory() as session:
             yield session
-        finally:
-            session.close()
 
     main.app.dependency_overrides[database.get_db] = _get_db
     try:

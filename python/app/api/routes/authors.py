@@ -1,7 +1,8 @@
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.author import Author
@@ -17,26 +18,26 @@ router = APIRouter(prefix="/api/authors", tags=["Authors"])
 )
 async def create_author(
     author_request: CreateAuthorRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ) -> Author:
     """Create a new author."""
     db_author = Author(
-        id=uuid4(),
         name=author_request.name,
         country=author_request.country,
     )
 
     db.add(db_author)
-    db.commit()
-    db.refresh(db_author)
+    await db.commit()
+    await db.refresh(db_author)
 
     return db_author
 
 
 @router.get("", response_model=ListAuthorsResponse)
-async def list_authors(db: Session = Depends(get_db)) -> ListAuthorsResponse:
+async def list_authors(db: AsyncSession = Depends(get_db)) -> ListAuthorsResponse:
     """List all authors for the tenant."""
-    authors = db.query(Author).all()
+    result = await db.execute(select(Author))
+    authors = list(result.scalars().all())
     return ListAuthorsResponse(
         authors=[AuthorResponse.model_validate(a) for a in authors],
         total=len(authors),
@@ -46,10 +47,11 @@ async def list_authors(db: Session = Depends(get_db)) -> ListAuthorsResponse:
 @router.get("/{author_id}", response_model=AuthorResponse)
 async def get_author(
     author_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ) -> Author:
     """Get author by ID."""
-    author = db.query(Author).filter(Author.id == author_id).first()
+    result = await db.execute(select(Author).where(Author.id == author_id))
+    author = result.scalar_one_or_none()
 
     if not author:
         raise HTTPException(
