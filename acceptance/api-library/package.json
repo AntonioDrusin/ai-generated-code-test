@@ -2,25 +2,22 @@
   "name": "@lang-compare/api-library",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
       "import": "./dist/index.js"
     }
   },
   "scripts": {
-    "generate": "openapi-typescript ../../api/openapi.yaml -o ./src/schema.d.ts",
+    "generate": "openapi-ts",
     "build": "tsc"
   },
-  "dependencies": {
-    "openapi-fetch": "^0.13.0"
-  },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.85.0",
     "@types/node": "^22.0.0",
-    "openapi-typescript": "^7.6.0",
     "typescript": "^5.7.0"
   }
 }

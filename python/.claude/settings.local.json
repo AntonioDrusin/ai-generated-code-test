@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(uvicorn app.main:app:*)",
+      "Bash(npx playwright test)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(cat:*)",
+      "Bash(npm run cucumber:author:*)",
+      "Bash(npx cucumber-js:*)",
+      "Bash(API_BASE_URL=http://localhost:8080/api npx cucumber-js:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

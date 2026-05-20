@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x C:/dev/tests/lang-compare/generate-api-libraries.sh)",
+      "Bash(bash -n C:/dev/tests/lang-compare/generate-api-libraries.sh)",
+      "Bash(git mv *)",
+      "Bash(chmod +x api/generate.sh)",
+      "Bash(bash -n api/generate.sh)",
+      "Bash(command -v dotnet)",
+      "Bash(dotnet --version)",
+      "Bash(command -v python)",
+      "Bash(command -v npm)",
+      "Bash(npm --version)",
+      "Bash(bash api/generate.sh)",
+      "Bash(dotnet build *)",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npx tsc *)",
+      "WebFetch(domain:heyapi.dev)",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)"
+    ]
+  }
+}

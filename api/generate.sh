@@ -5,9 +5,9 @@
 # (csproj / package.json / tsconfig.json / hand-written wrappers) are
 # committed alongside each library and are not produced by this script.
 #
-#   C#         -> csharp/api-library/Generated/  (Kiota)
-#   Python     -> python/api-library/            (openapi-python-client)
-#   TypeScript -> acceptance/api-library/src/schema.d.ts (openapi-typescript)
+#   C#         -> csharp/api-library/Generated/   (Kiota)
+#   Python     -> python/api-library/             (openapi-python-client)
+#   TypeScript -> acceptance/api-library/src/client/ (Hey API)
 
 set -euo pipefail
 
@@ -86,11 +86,13 @@ rm -rf "$PY_OUT"
     --overwrite )
 
 # ──────────────────────────────────────────────────────────────────────
-# TypeScript — openapi-typescript
+# TypeScript — Hey API (@hey-api/openapi-ts)
 # ──────────────────────────────────────────────────────────────────────
-echo "==> [3/3] TypeScript (openapi-typescript)"
+echo "==> [3/3] TypeScript (Hey API)"
 TS_DIR="$ROOT/acceptance/api-library"
 
+# Clean regeneration so removed schemas/endpoints don't linger.
+rm -rf "$TS_DIR/src/client"
 ( cd "$TS_DIR" && npm install --silent && npm run generate )
 
 echo

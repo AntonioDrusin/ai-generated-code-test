@@ -113,7 +113,7 @@ Re-run it any time `api/openapi.yaml` changes. Outputs:
 |------------|-----------------------------|------------------------------------------------|
 | C#         | Kiota                       | `csharp/api-library/Generated/`                |
 | Python     | openapi-python-client       | `python/api-library/`                          |
-| TypeScript | openapi-typescript + openapi-fetch | `acceptance/api-library/src/schema.d.ts` |
+| TypeScript | Hey API (@hey-api/openapi-ts)      | `acceptance/api-library/src/client/`           |
 
 ## Domain Model
 

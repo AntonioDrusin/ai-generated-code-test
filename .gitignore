@@ -186,4 +186,4 @@ appsettings.local.json
 # ────────────────────────────────────────────────
 csharp/api-library/Generated/
 python/api-library/
-acceptance/api-library/src/schema.d.ts
+acceptance/api-library/src/client/

@@ -1,29 +1,24 @@
-import createClient from "openapi-fetch";
-import type { paths, components } from "./schema";
+import { client } from "./client/client.gen";
 
-export type Schemas = components["schemas"];
+export * from "./client";
 
-export interface ClientOptions {
+export interface ConfigureOptions {
   baseUrl?: string;
   tenantId?: string;
   fetch?: typeof globalThis.fetch;
 }
 
-export function createApiClient({
+export function configureApiClient({
   baseUrl = "http://localhost:8080/api",
   tenantId,
   fetch,
-}: ClientOptions = {}) {
-  const client = createClient<paths>({ baseUrl, fetch });
+}: ConfigureOptions = {}) {
+  client.setConfig({ baseUrl, fetch });
   if (tenantId) {
-    client.use({
-      onRequest({ request }) {
-        request.headers.set("X-Tenant-ID", tenantId);
-        return request;
-      },
+    client.interceptors.request.use((request) => {
+      request.headers.set("X-Tenant-ID", tenantId);
+      return request;
     });
   }
   return client;
 }
-
-export type { paths, components };
